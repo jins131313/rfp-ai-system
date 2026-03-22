@@ -19,6 +19,14 @@ import numpy as np
 
 st.set_page_config(page_title="RFP 초안작성 AI 시스템", page_icon="📝", layout="centered")
 
+
+st.title("📝 제안요청서 초안작성 AI 시스템(국립부경대 김진명 作)")
+st.markdown("참고 문서를 첨부하고 지시사항을 구체적으로 입력하면 AI가 맞춤형 초안을 작성해 줍니다.")
+st.markdown("집중적으로 작성할 파트를 선택하세요(예시 : 요약본, 요구사항 상세)")
+st.markdown("※제안요청서 전체를 작성하려고 할 시 에러 발생 가능성 있어 챕터별 초안작성만 제공됩니다")
+st.markdown("※제안요청서 작성완료까지는 약 3~10분 내로 소요됩니다!")
+
+
 hide_st_style = """
     <style>
     #MainMenu {visibility: hidden;} /* 구형 MainMenu 대응 */
@@ -31,13 +39,6 @@ hide_st_style = """
     </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
-
-st.title("📝 제안요청서 초안작성 AI 시스템(국립부경대 김진명 作)")
-st.markdown("참고 문서를 첨부하고 지시사항을 구체적으로 입력하면 AI가 맞춤형 초안을 작성해 줍니다.")
-st.markdown("집중적으로 작성할 파트를 선택하세요(예시 : 요약본, 요구사항 상세)")
-st.markdown("※제안요청서 전체를 작성하려고 할 시 에러 발생 가능성 있어 챕터별 초안작성만 제공됩니다")
-st.markdown("※제안요청서 작성완료까지는 약 3~10분 내로 소요됩니다!")
-
 
 # API 키 설정 (로컬 테스트용)
 #try:

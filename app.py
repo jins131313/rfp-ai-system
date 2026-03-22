@@ -12,6 +12,7 @@ import pandas as pd
 import PyPDF2
 from docx import Document
 import io
+import numpy as np
 
 
 # Streamlit 웹 UI 구성
@@ -20,21 +21,21 @@ st.set_page_config(page_title="RFP 초안작성 AI 시스템", page_icon="📝",
 
 st.title("📝 제안요청서 초안작성 AI 시스템(국립부경대 김진명 作)")
 st.markdown("참고 문서를 첨부하고 지시사항을 구체적으로 입력하면 AI가 맞춤형 초안을 작성해 줍니다.")
-st.markdown("집중적으로 작성할 파트를 선택하세요(예시 : 요약본, 요구사항 상세) ※제안요청서 전체를 작성하려고 할 시 에러 발생 가능성 있음")
+st.markdown("집중적으로 작성할 파트를 선택하세요(예시 : 요약본, 요구사항 상세)")
+st.markdown("※제안요청서 전체를 작성하려고 할 시 에러 발생 가능성 있어 챕터별 초안작성만 제공됩니다")
+st.markdown("※제안요청서 작성완료까지는 약 3~10분 내로 소요됩니다!")
 
-hide_menu_style = """
-    <style>
-    header {visibility: hidden;}
-    /* 숨긴 메뉴만큼 위쪽 여백을 살짝 줄여서 화면을 넓게 씁니다 */
-    .block-container {padding-top: 2rem;}
-    </style>
-"""
-st.markdown(hide_menu_style, unsafe_allow_html=True)
 
 # API 키 설정 (로컬 테스트용)
-
-# 1. 클라우드 배포 상태일 때
+#try:
+    # 1. 클라우드 배포 상태일 때
 API_KEY = st.secrets["GEMINI_API_KEY"]
+#except:
+    # 2. 내 PC에서 로컬 테스트할 때
+    #API_KEY = "AIzaSyCvrROFm9b_xPAdD6syfPB1dJRlW95w8HA"
+
+# 테스트모드
+#API_KEY = "AIzaSyCvrROFm9b_xPAdD6syfPB1dJRlW95w8HA"
 
 # 1. 과거 HUG 제안요청서 PDF 데이터 로드 (캐싱 적용)
 
@@ -66,37 +67,77 @@ def load_reference_rfps(folder_path="reference_rfps"):
 
 # 2. 문서 유사도 분석 함수 (과거 사업 Top 5 추출)
 
-def get_top_5_similar_rfps(query_text, corpus_dict):
+@st.cache_data(show_spinner=False)
+def get_document_embeddings_v2(_corpus_dict, api_key):
+    genai.configure(api_key=api_key)
+    embeddings = {}
+    
+    total_docs = len(_corpus_dict)
+    if total_docs == 0:
+        return embeddings
+
+    # 진행 상태 바
+    progress_text = f"과거 사업 데이터 학습 중... (총 {total_docs}개)"
+    my_bar = st.progress(0, text=progress_text)
+    
+    for i, (filename, text) in enumerate(_corpus_dict.items()):
+        chunk = text[:3000] 
+        if chunk.strip():
+            try:
+                res = genai.embed_content(
+                    model="models/gemini-embedding-001",
+                    content=chunk,
+                    task_type="retrieval_document"
+                )
+                embeddings[filename] = res['embedding']
+            except Exception as e:
+                # 구글 서버에서 API 거절 사유
+                st.error(f"[{filename}] 구글 API 거절 사유: {e}") 
+                
+        time.sleep(4.2) # API 제한 방지
+        my_bar.progress((i + 1) / total_docs, text=f"{progress_text} - ({i+1}/{total_docs}) 완료")
+        
+    my_bar.empty()
+    return embeddings
+
+def get_top_5_similar_rfps_rag(query_text, corpus_dict, api_key):
     if not corpus_dict or not query_text:
         return None
     
-    filenames = list(corpus_dict.keys())
-    corpus_texts = list(corpus_dict.values())
+    genai.configure(api_key=api_key)
+    # v2 함수를 호출하도록 변경 (기존 꼬인 캐시 무시)
+    doc_embeddings_dict = get_document_embeddings_v2(corpus_dict, api_key)
     
+    if not doc_embeddings_dict:
+        st.error("문서 임베딩 데이터가 없습니다. API 제한이 걸렸을 수 있습니다.")
+        return None
+
     try:
-        # 사용자 입력(또는 초안) + 과거 RFP 텍스트들을 묶어서 형태소 벡터화
-        vectorizer = TfidfVectorizer()
-        tfidf_matrix = vectorizer.fit_transform([query_text] + corpus_texts)
-        
-        # 첫 번째(현재 사업)와 나머지(과거 사업들) 간의 코사인 유사도 계산
-        cosine_sim = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
+        query_chunk = query_text[:3000]
+        query_res = genai.embed_content(
+            model="models/gemini-embedding-001",
+            content=query_chunk,
+            task_type="retrieval_query"
+        )
+        query_vector = np.array(query_res['embedding'])
         
         results = []
-        for idx, name in enumerate(filenames):
-            clean_name = name.replace(".pdf", "")
+        for filename, d_vec in doc_embeddings_dict.items():
+            d_vec_np = np.array(d_vec)
+            cos_sim = np.dot(query_vector, d_vec_np) / (np.linalg.norm(query_vector) * np.linalg.norm(d_vec_np))
+            
+            clean_name = filename.replace(".pdf", "")
             results.append({
                 "유사 과거 사업명": clean_name,
-                "원본파일명": name,
-                "유사도(%)": round(cosine_sim[idx] * 100, 2)
+                "원본파일명": filename,
+                "유사도(%)": round(float(cos_sim) * 100, 2)
             })
             
-        # 유사도 높은 순으로 정렬 후 상위 5개만 추출
         df = pd.DataFrame(results).sort_values(by="유사도(%)", ascending=False).head(5)
-        
-        # 보기 좋게 인덱스를 1부터 시작하도록 조정
         df.index = range(1, len(df) + 1)
         return df
     except Exception as e:
+        st.error(f"유사도 계산 중 오류 발생: {e}")
         return None
 
 
@@ -180,7 +221,7 @@ section_choice = st.radio(
     horizontal=True
 )
 
-user_input = st.text_area("이번 사업의 핵심 요구사항이나 특별히 강조할 내용을 입력하세요.", height=100)
+user_input = st.text_area("이번 사업의 핵심 요구사항이나 특별히 강조할 내용을 입력하세요. 예산과 과업기간은 꼭 입력해주시기바랍니다", height=100)
 
 if st.button(f"초안 생성 및 과거 유사 사업 탐색", type="primary"):
     if not API_KEY:
@@ -198,27 +239,42 @@ if st.button(f"초안 생성 및 과거 유사 사업 탐색", type="primary"):
                 1. 반드시 명확하고 간결한 '개조식(~함, ~임)'으로 작성할 것.
                 2. 예산, 일정, 요구사항 등 수치나 명확한 팩트가 있다면 표 형식으로 정리할 것.
                 3. 규정에 부합하는 용어와 공공기관 행정 용어를 적절히 사용할 것.
+                4. 공공기관 공통 필수 요건 : 사업 분야를 막론하고 공공기관 용역에 공통으로 적용되는 다음 항목들을 문맥에 맞게 적절히 포함할것.
+                   - 과업 수행에 따른 산출물 제출 및 검수 기준
+                   - 과업 수행 중 발생하는 산출물에 대한 지적재산권(저작권) 귀속 및 보안/비밀유지 의무
+                   - 과업 지연 또는 불량에 따른 책임 및 손해배상(페널티) 조건
+                5. 할루시네이션(환각) 금지: 사용자가 제공하지 않은 구체적인 예산 금액이나 가상의 법령을 임의로 지어내지 말것.
+                6. 내용 축약 및 얼버무리기 절대 금지: 표의 '요구사항 상세설명'이나 '과업 내용'을 작성할 때, 절대 '세부내용'과 같은 단어 하나로 대충 얼버무리거나 축약하지 말것. 정보화 사업(감리, 개인정보영향평가, 컨설팅 용역 등 포함)의 경우 실제 개발 및 사업 수행에 필요한 구체적인 스펙과 동작 방식을 최소 3~4문장 이상의 긴 호흡으로 상세하고 빼곡하게 모두 서술.
+                7. 너무 무리하게 분량을 늘리다가 문서가 중간에 끊기지 않도록, 도출하는 항목의 수(약 10~15개 내외)를 조절하여 반드시 기승전결이 있는 완벽하게 끝맺음 된 형태(문장의 마침표 및 표의 닫힘 등)로 출력을 완료할것.
                 
                 [HUG 표준 목차 (참고용 배경지식)]
                 1. 사업 개요 / 2. 공사업무 현황 / 3. 사업 추진방안 / 4. 요구사항 상세 / 5. 제안서 작성요령 / 6. 제안 안내사항
 
+                [HUG 특화 작성 지침]
+                1. HUG 비전 및 미션 연계: 본 과업이 단순한 용역을 넘어, HUG의 핵심 미션인 '서민 주거안정', '전세사기 피해 예방', '주택도시기금의 효율적 운용 및 관리' 등에 어떻게 기여할 수 있는지 과업 목적과 기대효과에 자연스럽게 녹여낼것.
+                2. 최고 수준의 정보보안 및 데이터 보호: 금융, 보증, 부동산 등 국민의 매우 민감한 재산 및 개인정보를 다루는 공사의 특성상, 용역 수행 과정(행사, 채용, 연구, IT 등 분야 불문)에서 발생할 수 있는 '개인정보 유출 방지 대책' 및 '강력한 보안 서약 요건'을 명시할것.
+                3. 대국민 및 유관기관 이해관계자 고려: HUG의 주요 고객인 '일반 국민(임차인/수분양자)', '건설/주택사업자', '금융기관', '국토교통부' 등 복잡한 이해관계자를 고려하여, 용역 결과물이 이들에게 미칠 영향과 소통 계획을 제안서에 포함하도록 요구할것.
+                4. 과년도 용역사업과 비슷한 사업을 추진한다면 과년도 용역사업 제안요청서를 최대한 반영할것 
+
                 [🚨 절대 준수 지시사항 🚨]
-                전체 목차를 모두 작성해서는 절대 안 됩니다. 
-                오직 사용자가 선택한 **[{section_choice}]** 파트 하나만 집중적으로 매우 상세하고 길게 작성하십시오.
-                선택된 파트 이외의 다른 목차는 절대 출력하지 마십시오.
-                표(Table) 작성 시 셀 내부에 줄바꿈 기호(\n)나 `<br>` 등의 HTML 태그를 절대 사용하지 마십시오. 여러 항목을 나열할 때는 줄바꿈 없이 쉼표(,)나 마침표(.)로만 이어 쓰십시오.
-                또한 시스템 구축, 정보화 사업, 시스템 개발, 정보화사업 컨설팅 및 감리용역, 개인정보보호영향평가 등 ICT 사업에만 요구사항 명세를 COR-00, DAR-00 등 SW 가이드라인에 맞추어 작성하십시오.
+                전체 목차를 모두 작성해서는 절대 안 됨. 
+                오직 사용자가 선택한 **[{section_choice}]** 파트 하나만 집중적으로 매우 상세하고 길게 작성할 것.
+                선택된 파트 이외의 다른 목차는 절대 출력하지 말것.
+                표(Table) 작성 시 셀 내부에 줄바꿈 기호(\n)나 `<br>` 등의 HTML 태그를 절대 사용하지 마십시오. 여러 항목을 나열할 때는 줄바꿈 없이 쉼표(,)나 마침표(.)로만 이어 쓸것.
+                또한 시스템 구축, 정보화 사업, 시스템 개발, 정보화사업 컨설팅 및 감리용역, 개인정보보호영향평가 등 ICT 사업에만 요구사항 명세를 COR-00, DAR-00 등 SW 가이드라인에 맞추어 작성할것.
                 """
                 final_prompt = f"{SYSTEM_PROMPT}\n\n[이번 사업 핵심 요청사항]\n{user_input}"
 
                 result_text = generate_draft(API_KEY, final_prompt, uploaded_files)
+
+                result_text = result_text.replace("<br>", " ").replace("<br/>", " ").replace("</br>", " ")
                 
                 st.markdown("### 🔍 HUG 과거 유사 사업 Top 5")
                 st.caption(f"총 {len(reference_rfps_dict)}개의 과거 데이터 기반으로 현재 구상 중인 사업과 가장 유사한 레퍼런스를 추천합니다.")
                 
                 if reference_rfps_dict:
                     analysis_query = user_input + "\n" + result_text
-                    similarity_df = get_top_5_similar_rfps(analysis_query, reference_rfps_dict)
+                    similarity_df = get_top_5_similar_rfps_rag(analysis_query, reference_rfps_dict, API_KEY)
                     
                     if similarity_df is not None and not similarity_df.empty:
                         # 화면에는 '원본파일명' 컬럼을 숨기고 깔끔하게 표출

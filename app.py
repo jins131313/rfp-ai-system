@@ -29,18 +29,17 @@ st.markdown("※제안요청서 작성완료까지는 약 3~10분 내로 소요�
 
 hide_st_style = """
     <style>
-    /* 1. 하단 기본 바 숨기기 */
+    /* 1. 상단 전체 헤더 숨기기 */
+    [data-testid="stHeader"] {visibility: hidden;} 
+    
+    /* 2. 하단 기본 바 숨기기 */
     footer {visibility: hidden;} 
     
-    /* 2. 우측 하단 빨간색 Deploy 버튼 싹 숨기기 (최신 버전 대응) */
-    .stDeployButton {display:none;} 
-    
-    /* 3. 우측 하단 파란색 Streamlit 로고 및 상태 바 숨기기 */
-    [data-testid="stStatusWidget"] {visibility: hidden;} 
-    
-    /* 4. 숨긴 메뉴만큼 위쪽 여백을 살짝 줄이기 */
-    .block-container {padding-top: 1rem; padding-bottom: 0rem;}
-
+    /* 3. 글자 잘림 현상 해결 */
+    .block-container {
+        padding-top: 4rem; 
+        padding-bottom: 2rem;
+    }
     </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)

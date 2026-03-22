@@ -19,6 +19,19 @@ import numpy as np
 
 st.set_page_config(page_title="RFP 초안작성 AI 시스템", page_icon="📝", layout="centered")
 
+hide_st_style = """
+    <style>
+    #MainMenu {visibility: hidden;} /* 구형 MainMenu 대응 */
+    header {visibility: hidden;} /* 우측 상단 점 세개 메뉴 숨기기 */
+    footer {visibility: hidden;} /* 하단 기본 바 숨기기 */
+    div[data-testid="stStatusWidget"] { visibility: hidden; } /* 우측 하단 내 깃허브 배지 숨기기 */
+    
+
+    .block-container {padding-top: 1rem; padding-bottom: 0rem;}
+    </style>
+"""
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 st.title("📝 제안요청서 초안작성 AI 시스템(국립부경대 김진명 作)")
 st.markdown("참고 문서를 첨부하고 지시사항을 구체적으로 입력하면 AI가 맞춤형 초안을 작성해 줍니다.")
 st.markdown("집중적으로 작성할 파트를 선택하세요(예시 : 요약본, 요구사항 상세)")

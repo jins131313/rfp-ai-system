@@ -29,25 +29,22 @@ st.markdown("※제안요청서 작성완료까지는 약 3~10분 내로 소요�
 
 hide_st_style = """
     <style>
-    /* 1. 상단 전체 헤더 완벽히 숨기기 */
-    [data-testid="stHeader"] {visibility: hidden !important;} 
+    /* 상단 메뉴 및 하단 바 숨기기 */
+    [data-testid="stHeader"] {display: none !important;}
+    footer {display: none !important;}
     
-    /* 2. 하단 기본 바 숨기기 */
-    footer {visibility: hidden !important;} 
-    
-    /* 3. 우측 하단 깃허브 뷰어 배지 및 로고 강제 삭제 */
+    /*우측 하단 배지 숨기기 */
+    .stAppDeployButton {display: none !important;}
+    [data-testid="stAppDeployButton"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
     .viewerBadge_container {display: none !important;}
     div[class^="viewerBadge"] {display: none !important;}
-    div[class^="styles_viewerBadge"] {display: none !important;}
     
-    /* 4. 글자 잘림 현상 해결: 위쪽 여백을 넉넉하게 */
-    .block-container {
-        padding-top: 4rem; 
-        padding-bottom: 2rem;
-    }
+    /* 여백 확보 */
+    .block-container {padding-top: 4rem; padding-bottom: 2rem;}
     </style>
 """
-st.markdown(hide_st_style, unsafe_allow_html=True)# API 키 설정 (로컬 테스트용)
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
 #try:
     # 1. 클라우드 배포 상태일 때

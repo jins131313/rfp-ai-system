@@ -27,24 +27,21 @@ st.markdown("※제안요청서 전체를 작성하려고 할 시 에러 발생 
 st.markdown("※제안요청서 작성완료까지는 약 3~10분 내로 소요됩니다!")
 
 
-hide_st_style = """
-    <style>
-    /* 상단 메뉴 및 하단 바 숨기기 */
-    [data-testid="stHeader"] {display: none !important;}
-    footer {display: none !important;}
-    
-    /*우측 하단 배지 숨기기 */
-    .stAppDeployButton {display: none !important;}
-    [data-testid="stAppDeployButton"] {display: none !important;}
-    [data-testid="stStatusWidget"] {display: none !important;}
-    .viewerBadge_container {display: none !important;}
-    div[class^="viewerBadge"] {display: none !important;}
-    
-    /* 여백 확보 */
-    .block-container {padding-top: 4rem; padding-bottom: 2rem;}
-    </style>
+hide_streamlit_style = """
+<style>
+.viewerBadge_container__1QSob {display: none !important;}
+.viewerBadge_link__1S137 {display: none !important;}
+[data-testid="stAppViewBlockContainer"] > div:last-child {display: none !important;}
+
+
+footer {visibility: hidden !important;}
+
+
+#MainMenu {visibility: hidden;}
+.stDeployButton {display:none;}
+</style>
 """
-st.markdown(hide_st_style, unsafe_allow_html=True)
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 #try:
     # 1. 클라우드 배포 상태일 때
@@ -275,7 +272,7 @@ if st.button(f"초안 생성 및 과거 유사 사업 탐색", type="primary"):
                 3. 대국민 및 유관기관 이해관계자 고려: HUG의 주요 고객인 '일반 국민(임차인/수분양자)', '건설/주택사업자', '금융기관', '국토교통부' 등 복잡한 이해관계자를 고려하여, 용역 결과물이 이들에게 미칠 영향과 소통 계획을 제안서에 포함하도록 요구할것.
                 4. 과년도 용역사업과 비슷한 사업을 추진한다면 과년도 용역사업 제안요청서를 최대한 반영할것 
 
-                [🚨 절대 준수 지시사항 🚨]
+                [절대 준수 지시사항]
                 전체 목차를 모두 작성해서는 절대 안 됨. 
                 오직 사용자가 선택한 **[{section_choice}]** 파트 하나만 집중적으로 매우 상세하고 길게 작성할 것.
                 선택된 파트 이외의 다른 목차는 절대 출력하지 말것.

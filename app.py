@@ -29,16 +29,17 @@ st.markdown("※제안요청서 작성완료까지는 약 3~10분 내로 소요�
 
 hide_streamlit_style = """
 <style>
-.viewerBadge_container__1QSob {display: none !important;}
-.viewerBadge_link__1S137 {display: none !important;}
-[data-testid="stAppViewBlockContainer"] > div:last-child {display: none !important;}
-
-
-footer {visibility: hidden !important;}
-
-
 #MainMenu {visibility: hidden;}
-.stDeployButton {display:none;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+
+div[class^="viewerBadge"] {display: none !important;}
+div[class*="viewerBadge"] {display: none !important;}
+._profileContainer_1b2p5_45 {display: none !important;}
+.viewerBadge_container__1QSob {display: none !important;}
+
+[data-testid="stAppViewContainer"] > div:last-child {display: none !important;}
+[data-testid="stAppViewBlockContainer"] > div:last-child {display: none !important;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)

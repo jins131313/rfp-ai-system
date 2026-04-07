@@ -33,13 +33,11 @@ hide_streamlit_style = """
 footer {visibility: hidden;}
 header {visibility: hidden;}
 
+
 div[class^="viewerBadge"] {display: none !important;}
 div[class*="viewerBadge"] {display: none !important;}
 ._profileContainer_1b2p5_45 {display: none !important;}
 .viewerBadge_container__1QSob {display: none !important;}
-
-[data-testid="stAppViewContainer"] > div:last-child {display: none !important;}
-[data-testid="stAppViewBlockContainer"] > div:last-child {display: none !important;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)

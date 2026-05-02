@@ -27,21 +27,23 @@ st.markdown("※제안요청서 전체를 작성하려고 할 시 에러 발생 
 st.markdown("※제안요청서 작성완료까지는 약 3~10분 내로 소요됩니다!")
 
 
-hide_streamlit_style = """
-<style>
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {visibility: hidden;}
-
-
-div[class^="viewerBadge"] {display: none !important;}
-div[class*="viewerBadge"] {display: none !important;}
-._profileContainer_1b2p5_45 {display: none !important;}
-.viewerBadge_container__1QSob {display: none !important;}
-</style>
+hide_st_style = """
+    <style>
+    /* 1. 상단 전체 헤더 숨기기 */
+    [data-testid="stHeader"] {visibility: hidden;} 
+    
+    /* 2. 하단 기본 바 숨기기 */
+    footer {visibility: hidden;} 
+    
+    /* 3. 글자 잘림 현상 해결 */
+    .block-container {
+        padding-top: 4rem; 
+        padding-bottom: 2rem;
+    }
+    </style>
 """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
+st.markdown(hide_st_style, unsafe_allow_html=True)
+# API 키 설정 (로컬 테스트용)
 #try:
     # 1. 클라우드 배포 상태일 때
 API_KEY = st.secrets["GEMINI_API_KEY"]
@@ -185,7 +187,7 @@ def retry_with_exponential_backoff(max_retries=5, base_delay=2.0, max_delay=60.0
 def generate_draft(api_key, prompt, uploaded_files=None):
     genai.configure(api_key=api_key)
     generation_config = genai.types.GenerationConfig(max_output_tokens=8192, temperature=0.2)
-    model = genai.GenerativeModel('gemini-2.5-pro', generation_config=generation_config)
+    model = genai.GenerativeModel('gemini-2.5-flash', generation_config=generation_config)
     
     contents = [prompt]
     temp_file_paths = []
@@ -271,7 +273,7 @@ if st.button(f"초안 생성 및 과거 유사 사업 탐색", type="primary"):
                 3. 대국민 및 유관기관 이해관계자 고려: HUG의 주요 고객인 '일반 국민(임차인/수분양자)', '건설/주택사업자', '금융기관', '국토교통부' 등 복잡한 이해관계자를 고려하여, 용역 결과물이 이들에게 미칠 영향과 소통 계획을 제안서에 포함하도록 요구할것.
                 4. 과년도 용역사업과 비슷한 사업을 추진한다면 과년도 용역사업 제안요청서를 최대한 반영할것 
 
-                [절대 준수 지시사항]
+                [🚨 절대 준수 지시사항 🚨]
                 전체 목차를 모두 작성해서는 절대 안 됨. 
                 오직 사용자가 선택한 **[{section_choice}]** 파트 하나만 집중적으로 매우 상세하고 길게 작성할 것.
                 선택된 파트 이외의 다른 목차는 절대 출력하지 말것.
